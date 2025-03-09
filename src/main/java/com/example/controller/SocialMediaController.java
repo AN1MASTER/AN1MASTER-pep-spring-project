@@ -1,6 +1,7 @@
 package com.example.controller;
 
-import javax.naming.AuthenticationException;
+import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,8 +17,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+
 import com.example.entity.Account;
 import com.example.entity.Message;
+import com.example.exception.InvalidAccountException;
+import com.example.exception.InvalidMessageException;
 import com.example.exception.UsernameExistsException;
 import com.example.service.AccountService;
 import com.example.service.MessageService;
@@ -40,16 +44,20 @@ public class SocialMediaController {
     }
     
     @PostMapping("/register")
-    public @ResponseBody ResponseEntity<Account> register(@RequestBody Account account) throws UsernameExistsException{
-        Account regAccount = this.accountService.addAccount(account);
-        if (regAccount == null) {
-            return ResponseEntity.status(409).body(regAccount);
+    public ResponseEntity<Account> register(@RequestBody Account account) throws UsernameExistsException{
+        
+        try {
+            Account regAccount = this.accountService.addAccount(account);
+            return ResponseEntity.status(HttpStatus.OK).body(regAccount);
+        } catch (UsernameExistsException ex) {
+            return ResponseEntity.status(409).body(account);
+        } catch (InvalidAccountException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(account);
         }
-
-        return ResponseEntity.status(200).body(regAccount);
+    
     } 
     @ExceptionHandler (value = UsernameExistsException.class)
-    public @ResponseBody ResponseEntity userNameExitsExceptionHandler(UsernameExistsException ex) {
+    public ResponseEntity userNameExitsExceptionHandler(UsernameExistsException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     } 
 
@@ -62,36 +70,50 @@ public class SocialMediaController {
         return ResponseEntity.status(HttpStatus.OK).body(loginAccount);
     }
     
-
-    
-
     @PostMapping("/messages")
     public ResponseEntity createMessage(@RequestBody Message message) {
-        return null;
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(this.messageService.addMessage(message));
+        } catch (InvalidMessageException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
+        } catch (NullPointerException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
+        }
     }
 
     @GetMapping("/messages")
-    public ResponseEntity getAllMessages(@RequestBody Message message) {
-        return ResponseEntity.status(200).body(messageService.getAllMessages());
+    public ResponseEntity<List<Message>> getAllMessages() {
+    
+        return ResponseEntity.status(HttpStatus.OK).body(this.messageService.getAllMessages());
     }
 
     @GetMapping("/messages/{message_id}")
-    public ResponseEntity getMessageById(@PathVariable int message_id) {
-        return null;
+    public ResponseEntity<Optional<Message>> getMessageById(@PathVariable int message_id) {
+        Optional<Message> message = this.messageService.getMessageById(message_id);
+        if (message.isEmpty()) {
+            //System.out.println("Message not found");
+            return ResponseEntity.status(HttpStatus.OK).body(null);
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(this.messageService.getMessageById(message_id));
     }
 
-    /* @DeleteMapping("/messages/{message_id}")
-    public ResponseEntity deleteMessageById(@PathVariable int message_id) {
+    @DeleteMapping("/messages/{message_id}")
+    public ResponseEntity<Integer> deleteMessageById(@PathVariable int message_id) {
+        Optional<Message> message = this.messageService.getMessageById(message_id);
+        if (message.isEmpty()) {
+            //System.out.println("Message not found");
+            return ResponseEntity.status(HttpStatus.OK).body(null);
+        }
         return ResponseEntity.status(HttpStatus.OK).body(this.messageService.deleteMessageById(message_id));
-    } */ 
+    }  
 
     /* @PatchMapping("/messages/{message_id}")
     public ResponseEntity updateMessageById(@PathVariable int message_id) {
         return ResponseEntity.status(HttpStatus.OK).body(this.messageService.updateMessageById(message_id));
-    } */
+    }  */
 
-    @GetMapping("/account/{account_id}/messages")
+    @GetMapping("/accounts/{account_id}/messages")
     public ResponseEntity getMessagesByAccountId(@PathVariable int account_id) {
-        return null;
+        return ResponseEntity.status(HttpStatus.OK).body(this.messageService.getMessageById(account_id));
     }
 }

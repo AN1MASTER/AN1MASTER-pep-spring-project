@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import com.example.entity.Account;
+import com.example.exception.InvalidAccountException;
 import com.example.exception.UsernameExistsException;
 import com.example.repository.AccountRepository;
 
@@ -22,24 +23,29 @@ public class AccountService {
     private MessageService messageService;
 
     
-    @Autowired
+    /* @Autowired
     public AccountService(AccountRepository accountRepository, MessageService messageService) {
         this.accountRepository = accountRepository;
         this.messageService = messageService;
-    }
+    } */
 
     
-    public Account addAccount(Account account) throws UsernameExistsException{
+    public Account addAccount(Account account){
         List<Account> accounts = this.accountRepository.findAll();
         //System.out.println("Username Exists");
-        if (accounts.contains(account)) {
+        
+        if (account.getPassword().length() < 4 || account.getUsername().isBlank()) {
+            throw new InvalidAccountException();
+        }
+        if (checkIfContains(account)) {
             System.out.println("Username Exists");
             throw new UsernameExistsException();
-        } else if (account.getPassword().length() < 4 || account.getUsername().isBlank()) {
-            return null;
-        }
+        } 
         //System.out.println("Account Registered. Username: " + account.getUsername());
-        return this.accountRepository.save(account);
+        Account regAccount = this.accountRepository.save(account);
+        System.out.println(account.getUsername() + " == " + regAccount.getUsername());
+        return regAccount;
+        
         
     } 
 
@@ -47,7 +53,9 @@ public class AccountService {
         List<Account> accounts = this.accountRepository.findAll();
 
         for (Account currAccount: accounts) {
-            if (account.getUsername() == currAccount.getUsername()) {
+            //System.out.println(account.getUsername() + " == " + currAccount.getUsername());
+            if (account.getUsername().equals(currAccount.getUsername())) {
+                //System.out.println("Exists");
                 return true;
             }
         }
