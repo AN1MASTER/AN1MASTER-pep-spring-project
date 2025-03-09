@@ -42,6 +42,10 @@ public class MessageService {
     }
 
     public Optional<Message> getMessageById(int message_id){
+        Optional<Message> message = this.messageRepository.findById(message_id);
+        if (message.isEmpty()) {
+            return null;
+        }
         return this.messageRepository.findById(message_id);
     } 
 
@@ -56,8 +60,10 @@ public class MessageService {
     }
 
     
-    public Message updateMessageById(int message_id) {
-        return this.messageRepository.
+    public Optional<Message> updateMessageById(int message_id) {
+        Optional<Message> message = this.messageRepository.findById(message_id);
+        if (message.
+        return this.messageRepository.updateById(message_id);
     } 
 
     /* public Message getMessageById(int message_id) throws ResourceNotFoundException{
