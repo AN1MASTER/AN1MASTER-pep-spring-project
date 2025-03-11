@@ -71,14 +71,14 @@ public class SocialMediaController {
     @PostMapping("/messages")
     public ResponseEntity<Message> createMessage(@RequestBody Message message) {
         try {
-            System.out.println(message.getMessageText());
+            
             return ResponseEntity.status(HttpStatus.OK).body(this.messageService.addMessage(message));
         } catch (InvalidMessageException ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(message);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
             
         } catch (NullPointerException ex) {
             
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
             
         }
     }

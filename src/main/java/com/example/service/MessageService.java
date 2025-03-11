@@ -34,7 +34,8 @@ public class MessageService {
     public Message addMessage(Message message) {
         
         Optional<Account> postedBy = accountRepository.findById(message.getPostedBy());
-        
+        if (!postedBy.isPresent()) throw new NullPointerException();
+
         if (message.getMessageText().isBlank() || message.getMessageText().length() > 255) {
             throw new InvalidMessageException();
         }
