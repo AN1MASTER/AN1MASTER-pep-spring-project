@@ -1,9 +1,11 @@
 package com.example.controller;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -56,11 +58,7 @@ public class SocialMediaController {
         }
     
     } 
-    @ExceptionHandler (value = UsernameExistsException.class)
-    public ResponseEntity userNameExitsExceptionHandler(UsernameExistsException ex) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
-    } 
-
+    
     @PostMapping("/login")
     public ResponseEntity<Account> login(@RequestBody Account account){
         Account loginAccount = this.accountService.login(account.getUsername(), account.getPassword());
@@ -71,13 +69,17 @@ public class SocialMediaController {
     }
     
     @PostMapping("/messages")
-    public ResponseEntity createMessage(@RequestBody Message message) {
+    public ResponseEntity<Message> createMessage(@RequestBody Message message) {
         try {
+            System.out.println(message.getMessageText());
             return ResponseEntity.status(HttpStatus.OK).body(this.messageService.addMessage(message));
         } catch (InvalidMessageException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(message);
+            
         } catch (NullPointerException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(message);
+            
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(message);
+            
         }
     }
 
@@ -88,27 +90,34 @@ public class SocialMediaController {
     }
 
     @GetMapping("/messages/{message_id}")
-    public ResponseEntity<Message> getMessageById(@PathVariable int message_id) {
+    public ResponseEntity<Optional<Message>> getMessageById(@PathVariable int message_id) {
         return ResponseEntity.status(HttpStatus.OK).body(this.messageService.getMessageById(message_id));
     }
 
     @DeleteMapping("/messages/{message_id}")
     public ResponseEntity<Integer> deleteMessageById(@PathVariable int message_id) {
-        Optional<Message> message = this.messageService.getMessageById(message_id);
-        if (message.isEmpty()) {
-            //System.out.println("Message not found");
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(this.messageService.deleteMessageById(message_id));
+        } catch (EmptyResultDataAccessException ex) {
             return ResponseEntity.status(HttpStatus.OK).body(null);
         }
-        return ResponseEntity.status(HttpStatus.OK).body(this.messageService.deleteMessageById(message_id));
+        
     }  
 
-    /* @PatchMapping("/messages/{message_id}")
-    public ResponseEntity updateMessageById(@PathVariable int message_id) {
-        return ResponseEntity.status(HttpStatus.OK).body(this.messageService.updateMessageById(message_id));
-    }  */
+    @PatchMapping("/messages/{message_id}")
+    public ResponseEntity<Integer> updateMessageById(@PathVariable int message_id, @RequestBody Message message) {
+        try {
+            return ResponseEntity.status(HttpStatus.OK).body(this.messageService.updateMessageById(message_id, message.getMessageText()));
+        } catch (InvalidMessageException ex ) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        } catch (NoSuchElementException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+        
+    }  
 
     @GetMapping("/accounts/{account_id}/messages")
-    public ResponseEntity getMessagesByAccountId(@PathVariable int account_id) {
-        return ResponseEntity.status(HttpStatus.OK).body(this.messageService.getMessageById(account_id));
-    }
+    public ResponseEntity<List<Message>> getMessagesByAccountId(@PathVariable int account_id) {
+        return ResponseEntity.status(HttpStatus.OK).body(this.messageService.getAccountMessages(account_id));
+    } 
 }
